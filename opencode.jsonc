@@ -24,6 +24,10 @@
     "nodejs-backend-patterns": {
       "enabled": true,
       "autoApply": false
+    },
+    "nodejs-best-practices": {
+      "enabled": true,
+      "autoApply": false
     }
   },
 
