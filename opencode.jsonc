@@ -1,0 +1,20 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "command": {
+    "super-commit": {
+      "description": "Agrupa cambios en commits semánticos y pushea",
+      "template": "Seguí las instrucciones en .opencode/commands/super-commit.md para agrupar los cambios en commits semánticos. Contexto opcional: $ARGUMENTS"
+    }
+  },
+
+  "mcp": {
+    "api-palabras-espanol": {
+      "type": "local",
+      "command": ["node", "ahorcado/wordsServer.mjs"],
+      "enabled": true
+    }
+  },
+
+  "instructions": ["AGENTS.md"]
+}

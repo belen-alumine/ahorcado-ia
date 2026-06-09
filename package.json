@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "node": "^26.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.1"
+  },
+  "scripts": {
+    "test": "npx playwright test ahorcado",
+    "test:chromium": "npx playwright test ahorcado --project=chromium",
+    "test:ui": "npx playwright test ahorcado --ui",
+    "test:report": "npx playwright show-report",
+    "test:words-server": "node tests/words-server.test.js"
+  }
+}
