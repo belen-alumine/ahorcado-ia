@@ -2,164 +2,179 @@ const fs = require('fs/promises');
 const path = require('path');
 const { execSync } = require('child_process');
 
-function cargarEnv() {
-    const ruta = path.join(__dirname, '../../.env');
-    try {
-        const contenido = fs.readFileSync(ruta, 'utf-8');
-        for (const linea of contenido.split('\n')) {
-            const trimmed = linea.trim();
-            if (!trimmed || trimmed.startsWith('#')) continue;
-            const idx = trimmed.indexOf('=');
-            if (idx === -1) continue;
-            const key = trimmed.slice(0, idx).trim();
-            const val = trimmed.slice(idx + 1).trim();
-            if (!process.env[key]) {
-                process.env[key] = val;
-            }
-        }
-    } catch {
-        // .env no existe, se usan las variables de entorno del sistema
-    }
+const PROYECTO_DIR = path.resolve(__dirname, '../..');
+const MAX_ATTEMPTS_BEFORE_ASK = 5;
+const userInstruction = process.argv[2] || '';
+
+async function leerSiExiste(ruta) {
+  try {
+    return await fs.readFile(ruta, 'utf-8');
+  } catch {
+    return null;
+  }
 }
 
-cargarEnv();
+async function leerContexto() {
+  const archivos = {
+    spec: path.join(PROYECTO_DIR, 'ahorcado/spec.md'),
+    systemPrompt: path.join(__dirname, 'system-prompt.md'),
+    'ahorcado/index.html': path.join(PROYECTO_DIR, 'ahorcado/index.html'),
+    'ahorcado/script.js': path.join(PROYECTO_DIR, 'ahorcado/script.js'),
+    'ahorcado/styles.css': path.join(PROYECTO_DIR, 'ahorcado/styles.css'),
+    'ahorcado/wordsServer.mjs': path.join(PROYECTO_DIR, 'ahorcado/wordsServer.mjs'),
+    'tests/ahorcado.spec.js': path.join(PROYECTO_DIR, 'tests/ahorcado.spec.js'),
+    'tests/words-server.test.js': path.join(PROYECTO_DIR, 'tests/words-server.test.js'),
+  };
 
-const API_URL = process.env.OPENCODE_API_URL || 'http://localhost:11434/v1';
-const API_KEY = process.env.OPENCODE_API_KEY;
-const MODELO = process.env.OPENCODE_MODEL || 'big-pickle';
+  const entradas = await Promise.all(
+    Object.entries(archivos).map(async ([nombre, ruta]) => {
+      const contenido = await leerSiExiste(ruta);
+      return { nombre, contenido };
+    })
+  );
 
-if (!API_KEY) {
-    console.error('Falta OPENCODE_API_KEY en .env o en variables de entorno');
-    process.exit(1);
+  const contexto = [];
+  for (const { nombre, contenido } of entradas) {
+    if (contenido !== null) {
+      contexto.push(`=== ${nombre} ===\n${contenido}`);
+    }
+  }
+  return contexto.join('\n\n');
 }
 
-async function startHarness() {
-    let currentError = null;
-    let activeLoop = true;
+async function startHarness(instruction) {
+  const inst = instruction || userInstruction;
+  let currentError = null;
+  let attempts = 0;
 
-    while (activeLoop) {
-        const context = await setContext(currentError);
-        const propuestaIA = await llamarAIA(context);
+  while (attempts < MAX_ATTEMPTS_BEFORE_ASK) {
+    attempts++;
+    const contextoArchivos = await leerContexto();
+    const systemPrompt = await leerSiExiste(path.join(__dirname, 'system-prompt.md'));
+    const context = construirPrompt(systemPrompt, contextoArchivos, currentError, inst);
 
-        await aplicarCambios(propuestaIA);
-        currentError = await ejecutarPruebas();
+    const propuestaIA = await llamarAIA(context);
+    await aplicarCambios(propuestaIA);
 
-        if (currentError === null) {
-            console.log("¡El código compiló y corrió sin errores de sintaxis!");
-            activeLoop = false;
-        } else {
-            console.log("Falló el test. Reintentando con el error...");
-        }
+    if (propuestaIA.stdout) {
+      console.log(propuestaIA.stdout);
     }
+
+    currentError = await ejecutarPruebas();
+
+    if (currentError === null) {
+      const output = { status: "success", attempts };
+      console.log(JSON.stringify(output));
+      process.exit(0);
+    } else {
+      console.log("Fallaron tests. Reintentando con el error...");
+    }
+  }
+
+  const output = { status: "max_attempts", attempts: MAX_ATTEMPTS_BEFORE_ASK, lastError: currentError, stdout: "" };
+  console.log(JSON.stringify(output));
+  process.exit(1);
 }
 
-async function setContext(errorActual) {
-    try {
-        const rutaSpec = path.join(__dirname, '../../especificaciones.md');
-        const rutaPrompt = path.join(__dirname, 'system-prompt.md');
-        const rutaAppJs = path.join(__dirname, '../../app.js');
+function construirPrompt(systemPrompt, contextoArchivos, errorActual, userInstruction) {
+  let prompt = `=== INSTRUCCIONES DEL SISTEMA ===\n${systemPrompt}\n\n`;
+  prompt += `=== ARCHIVOS DEL PROYECTO ===\n${contextoArchivos}\n\n`;
 
-        const especificaciones = await fs.readFile(rutaSpec, 'utf-8');
-        const systemPrompt = await fs.readFile(rutaPrompt, 'utf-8');
+  if (userInstruction) {
+    prompt += `=== INSTRUCCIÓN DEL USUARIO ===\n${userInstruction}\n\n`;
+  }
 
-        let codigoActual = '// Aún no se ha escrito código.';
-        try {
-            codigoActual = await fs.readFile(rutaAppJs, 'utf-8');
-        } catch (e) {
-            // Si el archivo no existe, se queda con el mensaje inicial
-        }
+  if (errorActual) {
+    prompt += `=== ERROR EN TESTS ===\n`;
+    prompt += `Los tests fallaron con el siguiente resultado:\n${errorActual}\n`;
+    prompt += `Tu única prioridad es corregir los archivos necesarios para que los tests pasen.\n`;
+  } else {
+    prompt += `=== ESTADO ===\nLos tests actuales pasan correctamente.`;
+    prompt += ` Podés continuar con el desarrollo según la spec.\n`;
+  }
 
-        let contexto = `=== INSTRUCCIONES DEL SISTEMA ===\n${systemPrompt}\n\n`;
-        contexto += `=== ESPECIFICACIONES DEL JUEGO ===\n${especificaciones}\n\n`;
-        contexto += `=== CÓDIGO ACTUAL DEL PROYECTO (app.js) ===\n${codigoActual}\n\n`;
-
-        if (errorActual) {
-            contexto += `=== ¡ALERTA: EL CÓDIGO TIENE UN ERROR! ===\n`;
-            contexto += `La terminal devolvió el siguiente error al intentar correr tu código. `;
-            contexto += `Tu única prioridad absoluta es corregir esto:\n${errorActual}\n`;
-        } else {
-            contexto += `=== ESTADO ===\nEl código actual no presenta errores de sintaxis conocidos. Podés continuar con las especificaciones.\n`;
-        }
-
-        return contexto;
-
-    } catch (error) {
-        console.error("Error crítico en el harness al intentar leer los archivos:", error);
-        throw error;
-    }
+  return prompt;
 }
 
 async function llamarAIA(contextoCompleto) {
-    const url = `${API_URL.replace(/\/+$/, '')}/chat/completions`;
+  const API_URL = process.env.OPENCODE_API_URL || 'http://localhost:11434/v1';
+  const API_KEY = process.env.OPENCODE_API_KEY;
+  const MODELO = process.env.OPENCODE_MODEL || 'big-pickle';
 
-    const configuracion = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_KEY}`
-        },
-        body: JSON.stringify({
-            model: MODELO,
-            messages: [
-                { role: 'user', content: contextoCompleto }
-            ],
-            response_format: { type: 'json_object' }
-        })
-    };
+  if (!API_KEY) {
+    console.error('Falta OPENCODE_API_KEY en variables de entorno');
+    process.exit(1);
+  }
 
-    try {
-        const respuesta = await fetch(url, configuracion);
+  const url = `${API_URL.replace(/\/+$/, '')}/chat/completions`;
+  const configuracion = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify({
+      model: MODELO,
+      messages: [
+        { role: 'user', content: contextoCompleto }
+      ],
+      response_format: { type: 'json_object' }
+    })
+  };
 
-        if (!respuesta.ok) {
-            const texto = await respuesta.text();
-            throw new Error(`Error en la API (${respuesta.status}): ${texto}`);
-        }
-
-        const datos = await respuesta.json();
-        const textoRespuesta = datos.choices[0].message.content;
-        const respuestaParseada = JSON.parse(textoRespuesta);
-
-        return respuestaParseada;
-
-    } catch (error) {
-        console.error("Error al conectar con la API de la IA:", error);
-        throw error;
+  try {
+    const respuesta = await fetch(url, configuracion);
+    if (!respuesta.ok) {
+      const texto = await respuesta.text();
+      throw new Error(`Error en la API (${respuesta.status}): ${texto}`);
     }
+
+    const datos = await respuesta.json();
+    const textoRespuesta = datos.choices[0].message.content;
+    const respuestaParseada = JSON.parse(textoRespuesta);
+
+    return respuestaParseada;
+  } catch (error) {
+    console.error("Error al conectar con la API de la IA:", error);
+    throw error;
+  }
 }
 
 async function aplicarCambios(propuesta) {
-    const rutaAppJs = path.join(__dirname, '../../app.js');
+  const archivos = propuesta.archivos || (propuesta.archivo && propuesta.codigo ? [{ archivo: propuesta.archivo, codigo: propuesta.codigo }] : []);
 
-    if (!propuesta.archivo || !propuesta.codigo) {
-        throw new Error('La respuesta de la IA debe contener "archivo" y "codigo"');
+  if (archivos.length === 0) {
+    throw new Error('La respuesta de la IA debe contener "archivos" (array) o "archivo" + "codigo"');
+  }
+
+  for (const item of archivos) {
+    if (!item.archivo || !item.codigo) {
+      throw new Error(`Cada entrada en "archivos" debe tener "archivo" y "codigo"`);
     }
-
-    const rutaDestino = propuesta.archivo === 'app.js'
-        ? rutaAppJs
-        : path.join(__dirname, '../..', propuesta.archivo);
-
+    const rutaDestino = path.resolve(PROYECTO_DIR, item.archivo);
     const dir = path.dirname(rutaDestino);
     await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(rutaDestino, propuesta.codigo, 'utf-8');
-
-    console.log(`Archivo escrito: ${propuesta.archivo}`);
+    await fs.writeFile(rutaDestino, item.codigo, 'utf-8');
+    console.log(`Archivo escrito: ${item.archivo}`);
+  }
 }
 
 async function ejecutarPruebas() {
-    const rutaAppJs = path.join(__dirname, '../../app.js');
-
-    try {
-        await fs.access(rutaAppJs);
-    } catch {
-        return 'app.js no existe aún.';
-    }
-
-    try {
-        execSync(`node --check "${rutaAppJs}"`, { stdio: 'pipe' });
-        return null;
-    } catch (error) {
-        return error.stderr.toString() || error.message;
-    }
+  try {
+    const salida = execSync('npm test -- --project=chromium', {
+      cwd: PROYECTO_DIR,
+      stdio: 'pipe',
+      timeout: 60000,
+      env: { ...process.env, CI: 'true' }
+    });
+    console.log(salida.stdout?.toString() || '');
+    return null;
+  } catch (error) {
+    const stderr = error.stderr?.toString() || '';
+    const stdout = error.stdout?.toString() || '';
+    const mensaje = error.message || '';
+    return `${stdout}\n${stderr}\n${mensaje}`.trim();
+  }
 }
 
 module.exports = { startHarness };
