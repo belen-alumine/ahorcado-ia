@@ -160,21 +160,29 @@ async function aplicarCambios(propuesta) {
 }
 
 async function ejecutarPruebas() {
-  try {
-    const salida = execSync('npm test -- --project=chromium', {
-      cwd: PROYECTO_DIR,
-      stdio: 'pipe',
-      timeout: 60000,
-      env: { ...process.env, CI: 'true' }
-    });
-    console.log(salida.stdout?.toString() || '');
-    return null;
-  } catch (error) {
-    const stderr = error.stderr?.toString() || '';
-    const stdout = error.stdout?.toString() || '';
-    const mensaje = error.message || '';
-    return `${stdout}\n${stderr}\n${mensaje}`.trim();
+  const comandos = [
+    { cmd: 'npm test -- --project=chromium', label: 'npm test (Playwright)' },
+    { cmd: 'npm run test:words-server', label: 'npm run test:words-server' },
+  ];
+
+  for (const { cmd, label } of comandos) {
+    try {
+      const salida = execSync(cmd, {
+        cwd: PROYECTO_DIR,
+        stdio: 'pipe',
+        timeout: 60000,
+        env: { ...process.env, CI: 'true' }
+      });
+      console.log(salida.stdout?.toString() || '');
+    } catch (error) {
+      const stderr = error.stderr?.toString() || '';
+      const stdout = error.stdout?.toString() || '';
+      const mensaje = error.message || '';
+      return `[${label}]\n${stdout}\n${stderr}\n${mensaje}`.trim();
+    }
   }
+
+  return null;
 }
 
 module.exports = { startHarness };
