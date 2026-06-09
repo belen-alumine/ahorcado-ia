@@ -16,5 +16,16 @@
     }
   },
 
+  "skills": {
+    "frontend-design": {
+      "enabled": true,
+      "autoApply": false
+    },
+    "nodejs-backend-patterns": {
+      "enabled": true,
+      "autoApply": false
+    }
+  },
+
   "instructions": ["AGENTS.md"]
 }
