@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ahorcado</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="contenedor">
+    <header class="encabezado">
+      <span class="icono">🎯</span>
+      <h1>Ahorcado</h1>
+      <p class="subtitulo">Adiviná la palabra antes de que se complete el dibujo</p>
+    </header>
+
+    <div class="tablero">
+      <div class="ahorcado">
+        <canvas id="canvas" width="200" height="250"></canvas>
+      </div>
+      <div class="info-partida">
+        <div class="puntaje" id="puntaje">
+          <span class="puntaje-valor">0</span>
+          <span class="puntaje-label">puntos</span>
+        </div>
+        <p class="palabra" id="palabra"></p>
+        <div class="vidas" id="vidas">
+          <span class="vida"></span>
+          <span class="vida"></span>
+          <span class="vida"></span>
+          <span class="vida"></span>
+          <span class="vida"></span>
+          <span class="vida"></span>
+          <span class="vida"></span>
+        </div>
+        <p class="mensaje" id="mensaje"></p>
+        <p class="letras-erradas" id="letras-usadas"></p>
+      </div>
+    </div>
+
+    <div class="botones" id="botones"></div>
+
+    <button class="btn-reiniciar" id="reiniciar">Nueva palabra</button>
+  </div>
+
+  <div class="resultado-overlay" id="resultadoOverlay">
+    <canvas id="confettiCanvas"></canvas>
+    <div class="resultado-card">
+      <span class="resultado-icono" id="resultadoIcono"></span>
+      <h2 class="resultado-titulo" id="resultadoTitulo"></h2>
+      <p class="resultado-palabra" id="resultadoPalabra"></p>
+      <p class="resultado-puntaje" id="resultadoPuntaje"></p>
+      <p class="resultado-mensaje" id="resultadoMensaje"></p>
+      <button class="btn-reiniciar" id="volverJugar">Volver a jugar</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

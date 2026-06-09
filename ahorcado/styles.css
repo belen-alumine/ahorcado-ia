@@ -1,0 +1,370 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.contenedor {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 560px;
+  width: 100%;
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.encabezado {
+  margin-bottom: 32px;
+}
+
+.icono {
+  font-size: 2.5em;
+  display: block;
+  margin-bottom: 8px;
+}
+
+h1 {
+  font-size: 2em;
+  color: #1a1a2e;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.subtitulo {
+  color: #666;
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
+.tablero {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+canvas {
+  background: #f8f9fa;
+  border-radius: 16px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.info-partida {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 160px;
+}
+
+.puntaje {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.puntaje-valor {
+  font-size: 1.5em;
+}
+
+.puntaje-label {
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
+.palabra {
+  font-size: 2em;
+  letter-spacing: 10px;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: #1a1a2e;
+  min-height: 1.3em;
+  padding: 10px 16px;
+  background: #f0f2f5;
+  border-radius: 12px;
+  width: 100%;
+  word-break: break-all;
+}
+
+.vidas {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.vida {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.vida.activa {
+  background: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+}
+
+.vida.perdida {
+  background: #ef5350;
+  box-shadow: 0 0 8px rgba(239, 83, 80, 0.5);
+  transform: scale(0.85);
+}
+
+.mensaje {
+  font-weight: 700;
+  font-size: 1em;
+  min-height: 1.5em;
+  padding: 8px 16px;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.mensaje.ganaste {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.mensaje.perdiste {
+  background: #fbe9e7;
+  color: #c62828;
+}
+
+.letras-erradas {
+  font-size: 0.85em;
+  color: #999;
+  min-height: 1.2em;
+  font-style: italic;
+}
+
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.botones button {
+  width: 40px;
+  height: 40px;
+  font-size: 0.95em;
+  font-weight: 600;
+  border: 2px solid #ddd;
+  background: white;
+  color: #333;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.botones button:hover:not(:disabled) {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.botones button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.botones button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+.botones button.acertada {
+  background: #4caf50;
+  border-color: #4caf50;
+  color: white;
+  opacity: 0.85;
+}
+
+.botones button.fallada {
+  background: #ef5350;
+  border-color: #ef5350;
+  color: white;
+  opacity: 0.85;
+}
+
+.btn-reiniciar {
+  padding: 14px 32px;
+  font-size: 1em;
+  font-weight: 700;
+  border: none;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  font-family: inherit;
+  letter-spacing: 0.5px;
+}
+
+.btn-reiniciar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-reiniciar:active {
+  transform: translateY(0);
+}
+
+/* Overlay de resultado */
+.resultado-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+.resultado-overlay.visible {
+  display: flex;
+}
+
+#confettiCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.resultado-card {
+  position: relative;
+  background: white;
+  border-radius: 28px;
+  padding: 48px 40px 36px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  animation: cardIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+}
+
+.resultado-icono {
+  font-size: 4em;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.resultado-titulo {
+  font-size: 2em;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.resultado-palabra {
+  font-size: 1.4em;
+  font-weight: 600;
+  color: #555;
+  font-family: 'Courier New', monospace;
+  padding: 8px 0;
+  margin-bottom: 8px;
+}
+
+.resultado-puntaje {
+  font-size: 1.2em;
+  font-weight: 700;
+  color: #667eea;
+  margin-bottom: 4px;
+}
+
+.resultado-mensaje {
+  font-size: 0.95em;
+  color: #888;
+  margin-bottom: 24px;
+  font-style: italic;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cardIn {
+  from { transform: scale(0.7) translateY(20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.shake {
+  animation: shake 0.5s ease;
+}
+
+.pop {
+  animation: pop 0.3s ease;
+}
+
+@media (max-width: 480px) {
+  .contenedor {
+    padding: 24px 16px;
+    border-radius: 16px;
+  }
+
+  .tablero {
+    gap: 20px;
+  }
+
+  .palabra {
+    font-size: 1.5em;
+    letter-spacing: 6px;
+  }
+
+  .botones button {
+    width: 34px;
+    height: 34px;
+    font-size: 0.85em;
+  }
+
+  h1 {
+    font-size: 1.6em;
+  }
+}
