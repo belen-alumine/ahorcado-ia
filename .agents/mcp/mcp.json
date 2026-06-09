@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "api-palabras-espanol": {
+      "command": "node",
+      "args": ["ahorcado/wordsServer.mjs"]
+    }
+  }
+}
