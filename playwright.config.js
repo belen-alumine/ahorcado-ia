@@ -77,7 +77,8 @@ export default defineConfig({
      url: 'http://localhost:3000',
      reuseExistingServer: !process.env.CI,
      env: {
-        NODE_OPTIONS: '--no-deprecation'
+        NODE_OPTIONS: '--no-deprecation',
+        PORT: '3000'
       }
    },
 });

@@ -15,7 +15,11 @@ test.describe('Harness de Pruebas - El Ahorcado', () => {
 
     // Tipear cada letra de la palabra
     for (const letra of palabraSecreta) {
-      await page.keyboard.press(letra);
+      if (letra === 'ñ') {
+        await page.evaluate(() => elegirLetra('ñ'));
+      } else {
+        await page.keyboard.press(letra);
+      }
       await page.waitForTimeout(100);
     }
 
@@ -42,7 +46,11 @@ test.describe('Harness de Pruebas - El Ahorcado', () => {
       const letra = String.fromCharCode(i);
       if (!palabra.includes(letra)) letrasIncorrectas.push(letra);
     }
-    if (letrasIncorrectas.length < 7) letrasIncorrectas.push('ñ');
+    const extras = ['ñ', 'w', 'k', 'x'];
+    for (const letra of extras) {
+      if (letrasIncorrectas.length >= 7) break;
+      if (!palabra.includes(letra)) letrasIncorrectas.push(letra);
+    }
 
     for (const letra of letrasIncorrectas) {
       await page.keyboard.press(letra);

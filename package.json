@@ -12,6 +12,6 @@
     "test:chromium": "npx playwright test ahorcado --project=chromium",
     "test:ui": "npx playwright test ahorcado --ui",
     "test:report": "npx playwright show-report",
-    "test:words-server": "node tests/words-server.test.js"
+    "test:words-server": "node --test tests/words-server.test.js"
   }
 }
