@@ -9,7 +9,8 @@ Un juego del **ahorcado** clásico en el navegador, desarrollado con HTML5, CSS3
 ### APIs externas
 
 - **Random Words API** (`random-words-api.kushcreates.com`) — obtiene palabras aleatorias en español (vía `?language=es`)
-- Si la API no responde, el servidor devuelve un error (sin palabras inventadas ni fallback local)
+- **Dictionary API** (`api.dictionaryapi.dev`) — obtiene definiciones de palabras
+- Si la API de palabras falla, usa una lista local hardcodeada de 30 palabras con definiciones
 
 ## Arquitectura
 
@@ -51,18 +52,16 @@ En `.agents/ia-harness/agent.js` hay un **bucle de desarrollo autónomo** que:
 
 El directorio `.agents/skills/` contiene habilidades especializadas para opencode que proveen guías detalladas sobre:
 
-- **Accesibilidad web** (WCAG 2.2)
 - **Frontend design** — interfaces pulidas
-- **Node.js backend patterns** — middlewares, autenticación, APIs
-- **Node.js best practices** — principios de diseño
-- **SEO** — optimización para buscadores
+- **Node.js backend patterns** — patrones de servidor Node.js
+- **Node.js best practices** — principios de diseño Node.js
 
 ### Tests
 
 Los tests usan **Playwright** y están en `tests/`:
 
 - `ahorcado.spec.js` — 3 escenarios: victoria perfecta (🏆), derrota (💀) y responsive (480px)
-- `words-server.test.js` — tests del servidor MCP de palabras
+- `words-server.test.js` — tests del servidor MCP de palabras (con `node:test`)
 
 ## Comandos
 

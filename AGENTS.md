@@ -6,7 +6,7 @@ Juego del ahorcado en `ahorcado/` — HTML + CSS + vanilla JS, sin dependencias 
 
 ## Comandos
 
-- `node ahorcado/server.js` — inicia servidor en `http://localhost:3000`
+- `node ahorcado/wordsServer.mjs` — inicia servidor en `http://localhost:3000` (usar `$env:PORT=3000` en Windows)
 - `npm test` — ejecuta tests de Playwright para el juego
 - `npm run test:chromium` — tests solo en Chromium
 - `npm run test:words-server` — tests del servidor MCP de palabras
@@ -26,8 +26,8 @@ ahorcado/
   server.js           — servidor HTTP estático (Node.js nativo)
   wordsServer.mjs     — servidor MCP para obtener palabras aleatorias
   spec.md             — especificaciones del juego + cómo correr tests
+opencode.jsonc           — configuración global del proyecto para opencode (en la raíz)
 .opencode/
-  opencode.jsonc          — configuración global del proyecto para opencode
   commands/
     super-commit.md       — comando /super-commit
 .agents/
@@ -43,16 +43,22 @@ tests/
 
 ## MCP (Model Context Protocol)
 
-El servidor `wordsServer.mjs` expone una herramienta `get_random_word` que devuelve una palabra en español con su definición. Se integra con opencode via `opencode.jsonc` (clave `mcp`).
+El servidor `wordsServer.mjs` expone una herramienta `get_random_word` que devuelve `{ palabra, definicion }`. Se integra con opencode via `opencode.jsonc` (clave `mcp`).
 
 ### API externa
-- Usa `https://api.dictionaryapi.dev/api/v2/entries/es/` para definiciones
-- Si la API no responde, devuelve la palabra sin definición
-- Las palabras se eligen de una lista local hardcodeada
+- Usa `https://random-words-api.kushcreates.com/api?language=es&type=lowercase&words=1` para palabras
+- Si la API de palabras falla, usa una lista local hardcodeada de 30 palabras con definiciones
+- `https://api.dictionaryapi.dev/api/v2/entries/es/` para definiciones de palabras de la API; si no responde, usa definición hardcodeada o vacío
 
 ## Notas
 
 - No hay build, lint, ni typecheck.
-- Las palabras del juego están hardcodeadas en `script.js`.
+- Las palabras del juego se obtienen del servidor (`/api/random-word`), que consulta una API externa con fallback a lista local.
 - `wordsServer.mjs` tiene su propia lista local que coincide con la del juego.
 - Tests: `npm test` (requiere `npm install && npx playwright install chromium`).
+
+## Skills
+
+- `frontend-design` — creación de interfaces pulidas
+- `nodejs-backend-patterns` — patrones de servidor Node.js
+- `nodejs-best-practices` — principios de diseño Node.js
