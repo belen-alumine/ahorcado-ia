@@ -4,10 +4,10 @@
 Juego del ahorcado clásico en el navegador. El usuario debe adivinar una palabra letra por letra antes de que se complete el dibujo del ahorcado.
 
 ## Tecnología
-- HTML5, CSS3, JavaScript (vanilla)
-- Sin dependencias externas
-- Servidor HTTP incluido con Node.js (módulos nativos: `http`, `fs`, `path`)
-- Las palabras vienen de una API externa con fallback a generación por sílabas
+- HTML5, CSS3, JavaScript (vanilla) — sin dependencias en el frontend
+- Servidor HTTP con Node.js (módulos nativos: `http`, `fs`, `path`)
+- Servidor MCP con `@modelcontextprotocol/sdk` para integración con herramientas de IA
+- Las palabras vienen de APIs externas con fallback a generación por sílabas
 - El servidor expone `/api/random-word` que devuelve `{ palabra, definicion }`
 
 ## Cómo ejecutar
@@ -43,11 +43,8 @@ npx playwright show-report
 2. **Derrota** — tipea 7 letras incorrectas → overlay 💀 + vidas en rojo
 3. **Responsive** — viewport 480px → contenedor visible + screenshot
 
-## Lista de palabras
-hola, termonuclear, baston, cartuchera, programación, aburrido, quince, balanza, cuaderno, puerta, gatos
-
 ## Reglas del juego
-- Se elige una palabra al azar de la lista
+- Se obtiene una palabra aleatoria desde el servidor (`/api/random-word`), que consulta APIs externas con fallback a generación por sílabas
 - El usuario ve guiones bajos (`_`) que representan cada letra
 - El usuario elige letras haciendo clic en los botones o tipeando con el teclado (a–z, ñ)
 - Si la letra está en la palabra, se muestra en su posición y suma puntos

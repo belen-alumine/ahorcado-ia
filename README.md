@@ -8,10 +8,8 @@ Un juego del **ahorcado** clásico en el navegador, desarrollado con HTML5, CSS3
 
 ### APIs externas
 
-- **Random Word API** (`random-word-api.herokuapp.com`) — obtiene palabras aleatorias en español
-- **Palabras Aleatorias API** (`palabras-aleatorias-public-api.herokuapp.com`) — fallback alternativo
-- **DictionaryAPI** (`api.dictionaryapi.dev`) — definiciones en español
-- Si todas fallan, el servidor genera palabras por sílabas aleatorias como fallback local
+- **Random Words API** (`random-words-api.kushcreates.com`) — obtiene palabras aleatorias en español (vía `?language=es`)
+- Si la API no responde, el servidor devuelve un error (sin palabras inventadas ni fallback local)
 
 ## Arquitectura
 
@@ -23,7 +21,7 @@ cliente (HTML/CSS/JS)  ←→  wordsServer.mjs (HTTP + MCP)
 
 El servidor `wordsServer.mjs` corre en Node.js con módulos nativos (`http`, `fs`, `path`) y expone dos interfaces:
 
-1. **HTTP** — sirve los archivos estáticos y el endpoint `/api/random-word` que devuelve `{ palabra, definicion }`
+1. **HTTP** — sirve los archivos estáticos y el endpoint `/api/random-word` que devuelve `{ palabra }`
 2. **MCP** (Model Context Protocol) — expone la herramienta `get_random_word` para que la IA (opencode) pueda consultar palabras durante el desarrollo
 
 El frontend consume `/api/random-word` al iniciar cada partida y maneja toda la lógica de juego en el navegador.
@@ -42,11 +40,12 @@ El proyecto está configurado con **opencode** como asistente de desarrollo (`op
 
 En `.agents/ia-harness/agent.js` hay un **bucle de desarrollo autónomo** que:
 
-1. Lee las especificaciones del juego (`especificaciones.md`)
-2. Envía el contexto a un modelo de IA vía API
-3. Recibe código generado y lo escribe a disco
-4. Ejecuta `node --check` para verificar sintaxis
-5. Si hay errores, los incluye en el siguiente ciclo como feedback
+1. Lee todos los archivos del proyecto (HTML, JS, CSS, server, tests, spec)
+2. Envía el contexto completo a un modelo de IA vía API
+3. Recibe código generado y escribe uno o varios archivos a disco
+4. Ejecuta `npm test` (Playwright) para validar el comportamiento
+5. Si los tests fallan, incluye la salida completa como feedback en el siguiente ciclo
+6. La IA también puede crear o modificar tests cuando las especificaciones cambian
 
 ### Skills
 
