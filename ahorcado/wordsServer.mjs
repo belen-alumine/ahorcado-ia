@@ -18,8 +18,27 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-// ── API externa de palabras ──────────────────────────────────
-async function fetchConTimeout(url, ms = 2000) {
+async function obtenerPalabra() {
+  try {
+    const res = await fetchConTimeout("https://random-words-api.kushcreates.com/api?language=es&type=lowercase&words=1", 10000);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0 && data[0]?.word) {
+        const palabra = String(data[0].word).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (/^[a-zñ]+$/.test(palabra) && palabra.length >= 3) {
+          console.error(`[API] palabra obtenida: "${palabra}"`);
+          return palabra;
+        }
+      }
+    }
+    console.error(`[API] respuesta ${res.status}, no se pudo obtener palabra`);
+  } catch (e) {
+    console.error(`[API] error al consultar API: ${e.message}`);
+  }
+  return null;
+}
+
+async function fetchConTimeout(url, ms = 10000) {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -30,57 +49,12 @@ async function fetchConTimeout(url, ms = 2000) {
   }
 }
 
-async function obtenerPalabraDesdeAPI() {
-  try {
-    const res = await fetchConTimeout("https://random-word-api.herokuapp.com/word?lang=es&number=5");
-    if (res.ok) {
-      const palabras = await res.json();
-      if (Array.isArray(palabras) && palabras.length > 0) {
-        return palabras[Math.floor(Math.random() * palabras.length)];
-      }
-    }
-  } catch {}
-
-  try {
-    const res = await fetchConTimeout("https://palabras-aleatorias-public-api.herokuapp.com/random");
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.body) return data.body;
-    }
-  } catch {}
-
-  return null;
-}
-
-async function obtenerDefinicion(palabra) {
-  try {
-    const res = await fetchConTimeout(`https://api.dictionaryapi.dev/api/v2/entries/es/${palabra}`);
-    if (res.ok) {
-      const data = await res.json();
-      return data[0]?.meanings?.[0]?.definitions?.[0]?.definition || "";
-    }
-  } catch {}
-  return "";
-}
-
 // ── Servidor HTTP ────────────────────────────────────────────
 http.createServer(async (req, res) => {
   if (req.url === '/api/random-word') {
-    let palabra = await obtenerPalabraDesdeAPI();
-
-    if (!palabra) {
-      // Fallback: palabra aleatoria generada
-      const silabas = "ba be bi bo bu ca ce ci co cu da de di do du fa fe fi fo fu ga ge gi go gu ha he hi ho hu ja je ji jo ju ka ke ki ko ku la le li lo lu ma me mi mo mu na ne ni no nu pa pe pi po pu ra re ri ro ru sa se si so su ta te ti to tu va ve vi vo vu wa we wi wo wu xa xe xi xo xu ya ye yi yo yu za ze zi zo zu".split(" ");
-      palabra = "";
-      for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
-        palabra += silabas[Math.floor(Math.random() * silabas.length)];
-      }
-    }
-
-    const definicion = await obtenerDefinicion(palabra);
-
+    const palabra = await obtenerPalabra();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ palabra, definicion }));
+    res.end(JSON.stringify({ palabra }));
     return;
   }
 
@@ -115,7 +89,7 @@ mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [{
       name: "get_random_word",
-      description: "Obtiene una palabra aleatoria en español con su definición desde una API externa, útil para juegos como el ahorcado.",
+      description: "Obtiene una palabra aleatoria en español, útil para juegos como el ahorcado.",
       inputSchema: { type: "object", properties: {} }
     }]
   };
@@ -126,22 +100,12 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new Error("Herramienta no encontrada");
   }
 
-  let palabra = await obtenerPalabraDesdeAPI();
-
-  if (!palabra) {
-    const silabas = "ba be bi bo bu ca ce ci co cu da de di do du fa fe fi fo fu ga ge gi go gu ha he hi ho hu ja je ji jo ju ka ke ki ko ku la le li lo lu ma me mi mo mu na ne ni no nu pa pe pi po pu ra re ri ro ru sa se si so su ta te ti to tu va ve vi vo vu wa we wi wo wu xa xe xi xo xu ya ye yi yo yu za ze zi zo zu".split(" ");
-    palabra = "";
-    for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
-      palabra += silabas[Math.floor(Math.random() * silabas.length)];
-    }
-  }
-
-  const definicion = await obtenerDefinicion(palabra);
+  const palabra = await obtenerPalabra();
 
   return {
     content: [{
       type: "text",
-      text: JSON.stringify({ palabra, definicion })
+      text: JSON.stringify({ palabra })
     }]
   };
 });
