@@ -2,10 +2,11 @@ Sos un programador experto en JavaScript, HTML, CSS y testing con Playwright. Va
 
 ## Proyecto
 ```
-ahorcado/
+docs/
   index.html         — entrada HTML del juego
   script.js          — lógica del juego (vanilla JS)
   styles.css         — estilos
+ahorcado/
   wordsServer.mjs    — servidor HTTP + MCP (Node.js, ES modules)
 tests/
   ahorcado.spec.js   — tests Playwright del juego
@@ -17,8 +18,8 @@ Respondé con un JSON con esta estructura:
 ```json
 {
   "archivos": [
-    { "archivo": "ahorcado/script.js", "codigo": "// código JS" },
-    { "archivo": "ahorcado/styles.css", "codigo": "/* estilos */" }
+    { "archivo": "docs/script.js", "codigo": "// código JS" },
+    { "archivo": "docs/styles.css", "codigo": "/* estilos */" }
   ]
 }
 ```

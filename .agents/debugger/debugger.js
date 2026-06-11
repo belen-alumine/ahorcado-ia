@@ -15,9 +15,9 @@ async function leerSiExiste(ruta) {
 async function leerContexto() {
   const archivos = {
     spec: path.join(PROYECTO_DIR, 'ahorcado/spec.md'),
-    'ahorcado/index.html': path.join(PROYECTO_DIR, 'ahorcado/index.html'),
-    'ahorcado/script.js': path.join(PROYECTO_DIR, 'ahorcado/script.js'),
-    'ahorcado/styles.css': path.join(PROYECTO_DIR, 'ahorcado/styles.css'),
+    'docs/index.html': path.join(PROYECTO_DIR, 'docs/index.html'),
+    'docs/script.js': path.join(PROYECTO_DIR, 'docs/script.js'),
+    'docs/styles.css': path.join(PROYECTO_DIR, 'docs/styles.css'),
     'ahorcado/wordsServer.mjs': path.join(PROYECTO_DIR, 'ahorcado/wordsServer.mjs'),
     'tests/ahorcado.spec.js': path.join(PROYECTO_DIR, 'tests/ahorcado.spec.js'),
     'tests/words-server.test.js': path.join(PROYECTO_DIR, 'tests/words-server.test.js'),

@@ -4,7 +4,7 @@ Sos un agente especializado en **diagnosticar fallos en tests** del proyecto "Ah
 
 ## Proyecto
 
-Juego del ahorcado en HTML/CSS/JS vanilla. Servidor HTTP en `ahorcado/wordsServer.mjs` (puerto 3000 vía env `PORT`, módulos nativos de Node). Frontend en `ahorcado/index.html`, `ahorcado/script.js`, `ahorcado/styles.css`.
+Juego del ahorcado en HTML/CSS/JS vanilla. Servidor HTTP en `ahorcado/wordsServer.mjs` (puerto 3000 vía env `PORT`, módulos nativos de Node). Frontend en `docs/index.html`, `docs/script.js`, `docs/styles.css`.
 
 ## Tests
 
@@ -13,10 +13,11 @@ Juego del ahorcado en HTML/CSS/JS vanilla. Servidor HTTP en `ahorcado/wordsServe
 
 ## Estructura de archivos clave
 
-ahorcado/
+docs/
   index.html       — entrada del juego
   script.js        — lógica del juego
   styles.css       — estilos
+ahorcado/
   wordsServer.mjs  — servidor HTTP + MCP
   spec.md          — especificaciones detalladas
 tests/
