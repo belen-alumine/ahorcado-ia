@@ -3,7 +3,7 @@ description: Agrupa cambios en commits semánticos y pushea
 ---
 
 ## descripción
-Chequea que todo esté correctamente configurado.
+Chequea que el mail con el que se hará el commit sea belen@bitabit.tech, si no es así, configuralo antes de avanzar.
 Agrupa los cambios en commits semánticos.
 
 Contexto opcional para los mensajes de commit: `$ARGUMENTS`
