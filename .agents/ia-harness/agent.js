@@ -2,10 +2,16 @@ const fs = require('fs/promises');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Ruta raíz del proyecto (dos niveles arriba desde .agents/ia-harness/)
 const PROYECTO_DIR = path.resolve(__dirname, '../..');
+
+// Intentos máximos del bucle IA antes de rendirse
 const MAX_ATTEMPTS_BEFORE_ASK = 5;
+
+// Instrucción opcional pasada por CLI: node agent.js "tu instrucción"
 const userInstruction = process.argv[2] || '';
 
+// Lee un archivo si existe, devuelve null si no
 async function leerSiExiste(ruta) {
   try {
     return await fs.readFile(ruta, 'utf-8');
@@ -14,6 +20,8 @@ async function leerSiExiste(ruta) {
   }
 }
 
+// Recolecta el contenido de todos los archivos del proyecto para dárselo
+// como contexto a la IA en cada ciclo
 async function leerContexto() {
   const archivos = {
     spec: path.join(PROYECTO_DIR, 'ahorcado/spec.md'),
@@ -26,6 +34,7 @@ async function leerContexto() {
     'tests/words-server.test.js': path.join(PROYECTO_DIR, 'tests/words-server.test.js'),
   };
 
+  // Lee todos los archivos en paralelo
   const entradas = await Promise.all(
     Object.entries(archivos).map(async ([nombre, ruta]) => {
       const contenido = await leerSiExiste(ruta);
@@ -33,6 +42,7 @@ async function leerContexto() {
     })
   );
 
+  // Arma un string consolidado con separadores visibles para la IA
   const contexto = [];
   for (const { nombre, contenido } of entradas) {
     if (contenido !== null) {
@@ -42,6 +52,7 @@ async function leerContexto() {
   return contexto.join('\n\n');
 }
 
+// Bucle principal: IA → código → tests → feedback → repetir
 async function startHarness(instruction) {
   const inst = instruction || userInstruction;
   let currentError = null;
@@ -53,15 +64,21 @@ async function startHarness(instruction) {
     const systemPrompt = await leerSiExiste(path.join(__dirname, 'system-prompt.md'));
     const context = construirPrompt(systemPrompt, contextoArchivos, currentError, inst);
 
+    // 1) Pide a la IA que genere/modifique archivos
     const propuestaIA = await llamarAIA(context);
+
+    // 2) Escribe en disco los archivos que la IA devuelva
     await aplicarCambios(propuestaIA);
 
+    // Si la IA incluyó un mensaje para mostrar, lo imprime
     if (propuestaIA.stdout) {
       console.log(propuestaIA.stdout);
     }
 
+    // 3) Ejecuta las suites de test; si fallan, devuelve el error como string
     currentError = await ejecutarPruebas();
 
+    // 4) Sin errores → éxito. Con errores → feedback al siguiente ciclo.
     if (currentError === null) {
       const output = { status: "success", attempts };
       console.log(JSON.stringify(output));
@@ -71,22 +88,42 @@ async function startHarness(instruction) {
     }
   }
 
-  const output = { status: "max_attempts", attempts: MAX_ATTEMPTS_BEFORE_ASK, lastError: currentError, stdout: "" };
+  // Se agotaron los intentos sin lograr que todos los tests pasen
+  const lastError = typeof currentError === 'object' && currentError !== null
+    ? currentError.error || JSON.stringify(currentError)
+    : currentError;
+  const output = { status: "max_attempts", attempts: MAX_ATTEMPTS_BEFORE_ASK, lastError, stdout: "" };
   console.log(JSON.stringify(output));
   process.exit(1);
 }
 
+// Construye el prompt final que se envía a la IA
 function construirPrompt(systemPrompt, contextoArchivos, errorActual, userInstruction) {
   let prompt = `=== INSTRUCCIONES DEL SISTEMA ===\n${systemPrompt}\n\n`;
   prompt += `=== ARCHIVOS DEL PROYECTO ===\n${contextoArchivos}\n\n`;
 
+  // Instrucción opcional del usuario (pasa por CLI)
   if (userInstruction) {
     prompt += `=== INSTRUCCIÓN DEL USUARIO ===\n${userInstruction}\n\n`;
   }
 
+  // Si hay un error de tests previo, la IA debe priorizar corregirlo
   if (errorActual) {
-    prompt += `=== ERROR EN TESTS ===\n`;
-    prompt += `Los tests fallaron con el siguiente resultado:\n${errorActual}\n`;
+    // Si errorActual es un objeto con diagnostico (del debugger)
+    if (typeof errorActual === 'object' && errorActual.diagnostico) {
+      const d = errorActual.diagnostico;
+      prompt += `=== DIAGNÓSTICO DEL DEBUGGER ===\n`;
+      prompt += `Tipo: ${d.tipo_error}\n`;
+      if (d.archivo) prompt += `Archivo: ${d.archivo}${d.linea ? `:${d.linea}` : ''}\n`;
+      prompt += `Causa: ${d.causa}\n`;
+      prompt += `Sugerencia: ${d.sugerencia}\n`;
+      prompt += `Confianza: ${d.confianza}\n`;
+      prompt += `=== ERROR ORIGINAL ===\n${errorActual.error}\n`;
+    } else {
+      const errorStr = typeof errorActual === 'string' ? errorActual : errorActual.error || String(errorActual);
+      prompt += `=== ERROR EN TESTS ===\n`;
+      prompt += `Los tests fallaron con el siguiente resultado:\n${errorStr}\n`;
+    }
     prompt += `Tu única prioridad es corregir los archivos necesarios para que los tests pasen.\n`;
   } else {
     prompt += `=== ESTADO ===\nLos tests actuales pasan correctamente.`;
@@ -96,6 +133,7 @@ function construirPrompt(systemPrompt, contextoArchivos, errorActual, userInstru
   return prompt;
 }
 
+// Llama a la API compatible con OpenAI (por defecto Ollama en localhost:11434)
 async function llamarAIA(contextoCompleto) {
   const API_URL = process.env.OPENCODE_API_URL || 'http://localhost:11434/v1';
   const API_KEY = process.env.OPENCODE_API_KEY;
@@ -118,6 +156,7 @@ async function llamarAIA(contextoCompleto) {
       messages: [
         { role: 'user', content: contextoCompleto }
       ],
+      // Fuerza a la IA a responder con un JSON válido
       response_format: { type: 'json_object' }
     })
   };
@@ -140,7 +179,10 @@ async function llamarAIA(contextoCompleto) {
   }
 }
 
+// Recibe el objeto { archivos: [{ archivo, codigo }] } de la IA
+// y escribe cada archivo en disco (creando directorios si es necesario)
 async function aplicarCambios(propuesta) {
+  // Soporta tanto array como objeto único por retrocompatibilidad
   const archivos = propuesta.archivos || (propuesta.archivo && propuesta.codigo ? [{ archivo: propuesta.archivo, codigo: propuesta.codigo }] : []);
 
   if (archivos.length === 0) {
@@ -159,6 +201,9 @@ async function aplicarCambios(propuesta) {
   }
 }
 
+// Ejecuta ambas suites de test secuencialmente.
+// Devuelve null si todas pasan, o un objeto { error, diagnostico }
+// con el error del test y el diagnóstico del debugger.
 async function ejecutarPruebas() {
   const comandos = [
     { cmd: 'npm test -- --project=chromium', label: 'npm test (Playwright)' },
@@ -178,7 +223,20 @@ async function ejecutarPruebas() {
       const stderr = error.stderr?.toString() || '';
       const stdout = error.stdout?.toString() || '';
       const mensaje = error.message || '';
-      return `[${label}]\n${stdout}\n${stderr}\n${mensaje}`.trim();
+      const errorStr = `[${label}]\n${stdout}\n${stderr}\n${mensaje}`.trim();
+
+      // Spawn debugger para obtener un diagnóstico estructurado
+      try {
+        const debuggerPath = path.join(PROYECTO_DIR, '.agents/debugger/debugger.js');
+        const debuggerOut = execSync(
+          `node "${debuggerPath}" --error ${JSON.stringify(errorStr)}`,
+          { cwd: PROYECTO_DIR, stdio: 'pipe', timeout: 30000, env: { ...process.env } }
+        );
+        const parsed = JSON.parse(debuggerOut.toString());
+        return { error: errorStr, diagnostico: parsed.diagnostico || null };
+      } catch {
+        return { error: errorStr, diagnostico: null };
+      }
     }
   }
 
