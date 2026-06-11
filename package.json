@@ -8,7 +8,7 @@
     "@types/node": "^25.9.1"
   },
   "scripts": {
-    "test": "npx playwright test ahorcado",
+    "test": "node tests/init-screenshots.mjs && npx playwright test ahorcado",
     "test:chromium": "npx playwright test ahorcado --project=chromium",
     "test:ui": "npx playwright test ahorcado --ui",
     "test:report": "npx playwright show-report",

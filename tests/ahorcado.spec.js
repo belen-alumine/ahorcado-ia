@@ -1,4 +1,10 @@
 const { test, expect } = require('@playwright/test');
+const { readFileSync, existsSync } = require('fs');
+const { join } = require('path');
+
+const screenshotDir = existsSync(join(__dirname, '.screenshot-dir'))
+  ? readFileSync(join(__dirname, '.screenshot-dir'), 'utf-8').trim()
+  : join(__dirname, 'screenshots');
 
 test.describe('Harness de Pruebas - El Ahorcado', () => {
 
@@ -36,6 +42,9 @@ test.describe('Harness de Pruebas - El Ahorcado', () => {
     const puntajeEsperado = (letrasUnicas.length * 10) + 50;
     const badgePuntaje = page.locator('.puntaje-valor');
     await expect(badgePuntaje).toHaveText(puntajeEsperado.toString());
+
+    // Screenshot de victoria
+    await page.screenshot({ path: `${screenshotDir}/victoria.png` });
   });
 
   test('Debería manejar correctamente la derrota (7 errores)', async ({ page }) => {
@@ -72,6 +81,9 @@ test.describe('Harness de Pruebas - El Ahorcado', () => {
     // El puntaje no debe ser negativo (empieza en 0 y no baja de 0)
     const badgePuntaje = page.locator('.puntaje-valor');
     await expect(badgePuntaje).toHaveText('0');
+
+    // Screenshot de derrota
+    await page.screenshot({ path: `${screenshotDir}/derrota.png` });
   });
 
   test('Diseño responsive en celulares (480px)', async ({ page }) => {
@@ -80,6 +92,6 @@ test.describe('Harness de Pruebas - El Ahorcado', () => {
     const contenedor = page.locator('.contenedor');
     await expect(contenedor).toBeVisible();
 
-    await page.screenshot({ path: 'tests/screenshots/responsive-480px.png' });
+    await page.screenshot({ path: `${screenshotDir}/responsive-480px.png` });
   });
 });
