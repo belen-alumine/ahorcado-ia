@@ -6,7 +6,7 @@
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  background: linear-gradient(135deg, #fef9f2, #f5e6d3, #efe0d4);
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -19,7 +19,7 @@ body {
   backdrop-filter: blur(10px);
   border-radius: 24px;
   padding: 40px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
   max-width: 560px;
   width: 100%;
   text-align: center;
@@ -38,13 +38,13 @@ body {
 
 h1 {
   font-size: 2em;
-  color: #1a1a2e;
+  color: #3d3d4a;
   font-weight: 800;
   letter-spacing: -0.5px;
 }
 
 .subtitulo {
-  color: #666;
+  color: #888;
   font-size: 0.9em;
   margin-top: 4px;
 }
@@ -59,7 +59,7 @@ h1 {
 }
 
 canvas {
-  background: #f8f9fa;
+  background: #faf5ef;
   border-radius: 16px;
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.06);
 }
@@ -76,12 +76,12 @@ canvas {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #f5a97f, #e07c5f);
   color: white;
   padding: 8px 20px;
   border-radius: 30px;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(224, 124, 95, 0.35);
 }
 
 .puntaje-valor {
@@ -98,10 +98,10 @@ canvas {
   letter-spacing: 10px;
   font-family: 'Courier New', monospace;
   font-weight: 700;
-  color: #1a1a2e;
+  color: #3d3d4a;
   min-height: 1.3em;
   padding: 10px 16px;
-  background: #f0f2f5;
+  background: #f3ede7;
   border-radius: 12px;
   width: 100%;
   word-break: break-all;
@@ -172,9 +172,9 @@ canvas {
   height: 40px;
   font-size: 0.95em;
   font-weight: 600;
-  border: 2px solid #ddd;
-  background: white;
-  color: #333;
+  border: 2px solid #e8ddd5;
+  background: #fefcf9;
+  color: #555;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -182,11 +182,11 @@ canvas {
 }
 
 .botones button:hover:not(:disabled) {
-  background: #667eea;
-  border-color: #667eea;
+  background: #e07c5f;
+  border-color: #e07c5f;
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(224, 124, 95, 0.3);
 }
 
 .botones button:active:not(:disabled) {
@@ -218,19 +218,19 @@ canvas {
   font-size: 1em;
   font-weight: 700;
   border: none;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #f5a97f, #e07c5f);
   color: white;
   border-radius: 50px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 15px rgba(224, 124, 95, 0.35);
   font-family: inherit;
   letter-spacing: 0.5px;
 }
 
 .btn-reiniciar:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 6px 20px rgba(224, 124, 95, 0.45);
 }
 
 .btn-reiniciar:active {
@@ -245,7 +245,7 @@ canvas {
   z-index: 1000;
   justify-content: center;
   align-items: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(4px);
   animation: fadeIn 0.3s ease;
 }
@@ -270,7 +270,7 @@ canvas {
   text-align: center;
   max-width: 400px;
   width: 90%;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.12);
   animation: cardIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 1;
 }
@@ -284,7 +284,7 @@ canvas {
 .resultado-titulo {
   font-size: 2em;
   font-weight: 800;
-  color: #1a1a2e;
+  color: #3d3d4a;
   margin-bottom: 4px;
 }
 
@@ -300,7 +300,7 @@ canvas {
 .resultado-puntaje {
   font-size: 1.2em;
   font-weight: 700;
-  color: #667eea;
+  color: #e07c5f;
   margin-bottom: 4px;
 }
 
