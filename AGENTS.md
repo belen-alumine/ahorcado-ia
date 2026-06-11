@@ -56,6 +56,7 @@ El servidor `wordsServer.mjs` expone una herramienta `get_random_word` que devue
 - Tests: `npm test` (requiere `npm install && npx playwright install chromium`).
 
 ## Skills
+Las skills `frontend-design` y `nodejs-backend-patterns` están con autoApply:true. Usalas activamente cuando la tarea corresponda.
 
 - `frontend-design` — creación de interfaces pulidas
 - `nodejs-backend-patterns` — patrones de servidor Node.js

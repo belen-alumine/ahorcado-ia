@@ -29,39 +29,76 @@ El frontend consume `/api/random-word` al iniciar cada partida y maneja toda la 
 
 ## Entorno de desarrollo con IA
 
+El proyecto está diseñado para desarrollo asistido por IA en múltiples niveles: desde el asistente interactivo **opencode** hasta un **harness autónomo** que itera sin supervisión, pasando por **sub-agentes** especializados y herramientas **MCP**. Todo se configura desde `opencode.jsonc`.
+
 ### opencode
 
-El proyecto está configurado con **opencode** como asistente de desarrollo (`opencode.jsonc`). Incluye:
+**opencode** es el asistente interactivo (CLI). Lee instrucciones de `AGENTS.md` y está configurado con:
 
-- **Instrucciones** personalizadas vía `AGENTS.md`
-- **Comando `/super-commit`** que agrupa cambios en commits semánticos y pushea automáticamente
-- **Servidor MCP integrado** (`wordsServer.mjs`) que opencode puede llamar durante la sesión para obtener palabras de prueba
+- **Skills** — habilidades cargadas vía `opencode.jsonc` que proveen guías detalladas para tareas específicas:
+  - `frontend-design` — interfaces pulidas y creativas
+  - `nodejs-backend-patterns` — patrones de servidor Node.js (Express/Fastify, middleware, auth, etc.)
+  - `nodejs-best-practices` — principios de diseño, selección de frameworks, async patterns
+
+  Cuando una tarea coincide, opencode inyecta automáticamente las instrucciones de la skill en el contexto.
+
+- **MCP (Model Context Protocol)** — el servidor `wordsServer.mjs` expone la herramienta `get_random_word` vía stdio. opencode puede llamarla durante la sesión para obtener palabras en español con definiciones, útil para generar datos de prueba o verificar el comportamiento del servidor.
+
+- **Comando `/super-commit`** — agrupa cambios no commiteados en commits semánticos y pushea automáticamente.
 
 ### Harness de IA autónomo
 
-En `.agents/ia-harness/agent.js` hay un **bucle de desarrollo autónomo** que:
+En `.agents/ia-harness/agent.js` hay un **bucle de desarrollo autónomo** que opera sin intervención humana:
 
-1. Lee todos los archivos del proyecto (HTML, JS, CSS, server, tests, spec)
-2. Envía el contexto completo a un modelo de IA vía API
-3. Recibe código generado y escribe uno o varios archivos a disco
-4. Ejecuta `npm test` (Playwright) y `npm run test:words-server` para validar el comportamiento
-5. Si los tests fallan, incluye la salida completa como feedback en el siguiente ciclo
-6. La IA también puede crear o modificar tests cuando las especificaciones cambian
+1. **Lee contexto** — recolecta spec, HTML, JS, CSS, server, tests y system prompt
+2. **Llama a la IA** — envía todo el contexto a un modelo LLM (vía API compatible con OpenAI, default `big-pickle`)
+3. **Aplica cambios** — la IA responde con `{ archivos: [{ archivo, codigo }] }`; el harness escribe cada archivo a disco
+4. **Ejecuta tests** — corre secuencialmente `npm test` (Playwright en Chromium) y `npm run test:words-server`
+5. **Diagnóstico** — si un test falla, **spawnea el sub-agente debugger** (ver abajo), cuyo diagnóstico se inyecta como feedback en el siguiente ciclo
+6. **Itera** — repite hasta 5 intentos. Si todos pasan → éxito. Si se agotan → error con `lastError`
+7. La IA puede crear o modificar tests cuando las especificaciones cambian
+
+### Sub-agente debugger
+
+El **debugger autónomo** (`.agents/debugger/debugger.js`) es un script independiente que el harness invoca como sub-proceso cuando los tests fallan. No depende del harness: puede ejecutarse solo con `--error` o por stdin.
+
+**Flujo de diagnóstico:**
+1. Recibe el error del test (stdout + stderr + mensaje)
+2. Lee los mismos archivos del proyecto que el harness
+3. Envía todo a la API con el prompt de `prompt.md`, pidiendo un JSON estructurado
+4. Devuelve `{ diagnostico: { tipo_error, archivo, linea, causa, sugerencia, confianza } }`
+
+**Fallbacks:** si la API no responde o el JSON es inválido, devuelve `confianza: "baja"` con un diagnóstico genérico. El harness incorpora el diagnóstico en la sección `=== DIAGNÓSTICO DEL DEBUGGER ===` del siguiente prompt.
 
 ### Skills
 
-El directorio `.agents/skills/` contiene habilidades especializadas para opencode que proveen guías detalladas sobre:
+Las skills se cargan desde `.agents/skills/` y se configuran en `opencode.jsonc`. Son instrucciones especializadas que opencode inyecta cuando detecta una tarea relevante (ej: "mejorá el diseño" → `frontend-design`). No se aplican automáticamente (`autoApply: false`) para no saturar el contexto.
 
-- **Frontend design** — interfaces pulidas
-- **Node.js backend patterns** — patrones de servidor Node.js
-- **Node.js best practices** — principios de diseño Node.js
+### MCP
+
+El servidor `ahorcado/wordsServer.mjs` implementa MCP (Model Context Protocol) sobre stdio. Se registra en `opencode.jsonc` como un servidor MCP local:
+
+```
+{
+  "mcp": {
+    "api-palabras-espanol": {
+      "type": "local",
+      "command": ["node", "ahorcado/wordsServer.mjs"],
+      "enabled": true
+    }
+  }
+}
+```
+
+Esto permite que opencode invoque la herramienta `get_random_word` durante la sesión sin necesidad de llamar a la API externa manualmente.
 
 ### Tests
 
 Los tests usan **Playwright** y están en `tests/`:
 
-- `ahorcado.spec.js` — 3 escenarios: victoria perfecta (🏆), derrota (💀) y responsive (480px)
-- `words-server.test.js` — tests del servidor MCP de palabras (con `node:test`)
+- `ahorcado.spec.js` — 3 escenarios: victoria perfecta (🏆), derrota (💀) y responsive (480px). Cada ejecución genera screenshots en `tests/screenshots/test_N/` (con contador autoincremental vía `init-screenshots.mjs`).
+- `words-server.test.js` — 5 tests del servidor MCP de palabras con el runner `node:test` (peticiones HTTP, MCP, error handling).
+- `init-screenshots.mjs` — crea la subcarpeta numerada para los screenshots de la corrida actual.
 
 ## Comandos
 
@@ -77,10 +114,11 @@ Los tests usan **Playwright** y están en `tests/`:
 ## Estructura del repositorio
 
 ```
-ahorcado/
+docs/
   index.html          — entrada del juego
   script.js           — lógica del juego
   styles.css          — estilos
+ahorcado/
   wordsServer.mjs     — servidor HTTP + MCP de palabras
   spec.md             — especificaciones detalladas
 opencode.jsonc         — configuración de opencode (en la raíz)
@@ -91,9 +129,15 @@ opencode.jsonc         — configuración de opencode (en la raíz)
   ia-harness/
     agent.js          — bucle de desarrollo autónomo
     system-prompt.md  — prompt del agente IA
+  debugger/
+    debugger.js       — sub-agente de diagnóstico de tests
+    prompt.md         — prompt del debugger
   mcp/
     mcp.json          — configuración MCP legacy
   skills/             — habilidades para opencode
+    frontend-design/
+    nodejs-backend-patterns/
+    nodejs-best-practices/
 tests/
   ahorcado.spec.js    — tests del juego (Playwright)
   words-server.test.js — tests del servidor MCP
