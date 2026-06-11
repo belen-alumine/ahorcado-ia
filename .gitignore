@@ -9,3 +9,8 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Screenshots generados por tests
+tests/.screenshot-dir
+tests/.test-counter
+tests/screenshots/test_*/
