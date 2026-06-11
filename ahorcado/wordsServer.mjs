@@ -114,7 +114,8 @@ http.createServer(async (req, res) => {
     return;
   }
 
-  let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+  const STATIC_DIR = path.resolve(__dirname, '../docs');
+  let filePath = path.join(STATIC_DIR, req.url === '/' ? 'index.html' : req.url);
   const ext = path.extname(filePath);
 
   fs.readFile(filePath, (err, data) => {

@@ -17,6 +17,15 @@ const resultadoPalabra = document.getElementById('resultadoPalabra');
 const resultadoPuntaje = document.getElementById('resultadoPuntaje');
 const resultadoMensaje = document.getElementById('resultadoMensaje');
 
+const PALABRAS_LOCAL = [
+  'casa', 'perro', 'gato', 'sol', 'luna',
+  'mar', 'flor', 'nube', 'cielo', 'nieve',
+  'vida', 'pan', 'lobo', 'pez', 'rosa',
+  'mano', 'pelo', 'nido', 'oso', 'mono',
+  'lago', 'toro', 'pato', 'cama', 'mesa',
+  'silla', 'plato', 'vaso', 'libro', 'radio'
+];
+
 let puntaje = 0;
 let palabraSecreta = '';
 let letrasAdivinadas = [];
@@ -314,7 +323,7 @@ async function obtenerPalabra() {
       }
     } catch {}
   }
-  throw new Error('No se pudo obtener una palabra del servidor');
+  return PALABRAS_LOCAL[Math.floor(Math.random() * PALABRAS_LOCAL.length)];
 }
 
 async function reiniciar() {
