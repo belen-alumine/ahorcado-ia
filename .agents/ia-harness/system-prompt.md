@@ -32,3 +32,5 @@ Podés incluir uno o varios archivos por respuesta. Cada `archivo` es una ruta r
 - Si las especificaciones cambian y los tests existentes no cubren el nuevo comportamiento, **actualizá o creá los tests necesarios** en `tests/` para que reflejen los requisitos.
 - No asumas que el servidor ya corre — los tests de Playwright lo inician automáticamente.
 - Asegurate de que no haya errores de sintaxis: puntos y comas, llaves cerradas, variables definidas antes de usarlas.
+- **Documentación**: si un cambio propuesto afecta la configuración o comportamiento documentado en `ahorcado/spec.md`, `AGENTS.md` o este mismo archivo (`system-prompt.md`), **consultá primero** al usuario antes de aplicar el cambio.
+- **Actualización de documentos**: después de implementar cambios que modifiquen la API, estructura, comandos o configuración del proyecto, actualizá todos los archivos de documentación relevantes (`ahorcado/spec.md`, `AGENTS.md`, `README.md`, `system-prompt.md`) para que reflejen el nuevo estado.
