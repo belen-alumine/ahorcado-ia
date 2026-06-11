@@ -22,7 +22,7 @@ cliente (HTML/CSS/JS)  ←→  wordsServer.mjs (HTTP + MCP)
 
 El servidor `wordsServer.mjs` corre en Node.js con módulos nativos (`http`, `fs`, `path`) y expone dos interfaces:
 
-1. **HTTP** — sirve los archivos estáticos y el endpoint `/api/random-word` que devuelve `{ palabra }`
+1. **HTTP** — sirve los archivos estáticos y el endpoint `/api/random-word` que devuelve `{ palabra, definicion }`
 2. **MCP** (Model Context Protocol) — expone la herramienta `get_random_word` para que la IA (opencode) pueda consultar palabras durante el desarrollo
 
 El frontend consume `/api/random-word` al iniciar cada partida y maneja toda la lógica de juego en el navegador.
@@ -44,7 +44,7 @@ En `.agents/ia-harness/agent.js` hay un **bucle de desarrollo autónomo** que:
 1. Lee todos los archivos del proyecto (HTML, JS, CSS, server, tests, spec)
 2. Envía el contexto completo a un modelo de IA vía API
 3. Recibe código generado y escribe uno o varios archivos a disco
-4. Ejecuta `npm test` (Playwright) para validar el comportamiento
+4. Ejecuta `npm test` (Playwright) y `npm run test:words-server` para validar el comportamiento
 5. Si los tests fallan, incluye la salida completa como feedback en el siguiente ciclo
 6. La IA también puede crear o modificar tests cuando las especificaciones cambian
 
@@ -83,8 +83,8 @@ ahorcado/
   styles.css          — estilos
   wordsServer.mjs     — servidor HTTP + MCP de palabras
   spec.md             — especificaciones detalladas
+opencode.jsonc         — configuración de opencode (en la raíz)
 .opencode/
-  opencode.jsonc      — configuración de opencode
   commands/
     super-commit.md   — comando personalizado
 .agents/

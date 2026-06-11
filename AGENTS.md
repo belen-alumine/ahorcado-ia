@@ -23,8 +23,7 @@ ahorcado/
   index.html          — entrada del juego
   script.js           — lógica del juego
   styles.css          — estilos
-  server.js           — servidor HTTP estático (Node.js nativo)
-  wordsServer.mjs     — servidor MCP para obtener palabras aleatorias
+  wordsServer.mjs     — servidor HTTP + MCP de palabras
   spec.md             — especificaciones del juego + cómo correr tests
 opencode.jsonc           — configuración global del proyecto para opencode (en la raíz)
 .opencode/
@@ -54,7 +53,6 @@ El servidor `wordsServer.mjs` expone una herramienta `get_random_word` que devue
 
 - No hay build, lint, ni typecheck.
 - Las palabras del juego se obtienen del servidor (`/api/random-word`), que consulta una API externa con fallback a lista local.
-- `wordsServer.mjs` tiene su propia lista local que coincide con la del juego.
 - Tests: `npm test` (requiere `npm install && npx playwright install chromium`).
 
 ## Skills
