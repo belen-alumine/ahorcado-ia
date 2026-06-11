@@ -19,11 +19,11 @@
   "skills": {
     "frontend-design": {
       "enabled": true,
-      "autoApply": false
+      "autoApply": true
     },
     "nodejs-backend-patterns": {
       "enabled": true,
-      "autoApply": false
+      "autoApply": true
     },
     "nodejs-best-practices": {
       "enabled": true,
