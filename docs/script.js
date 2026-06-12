@@ -18,12 +18,13 @@ const resultadoPuntaje = document.getElementById('resultadoPuntaje');
 const resultadoMensaje = document.getElementById('resultadoMensaje');
 
 const PALABRAS_LOCAL = [
-  'casa', 'perro', 'gato', 'sol', 'luna',
-  'mar', 'flor', 'nube', 'cielo', 'nieve',
-  'vida', 'pan', 'lobo', 'pez', 'rosa',
-  'mano', 'pelo', 'nido', 'oso', 'mono',
-  'lago', 'toro', 'pato', 'cama', 'mesa',
-  'silla', 'plato', 'vaso', 'libro', 'radio'
+  'java', 'computadora','teclado', 'objetos',
+  'bug', 'consola', 'booleano', 'software',
+  'solid', 'persistencia', 'codigo', 'lenguaje',
+  'test', 'programacion', 'arquitectura', 'diseño',
+  'python', 'javascript', 'react', 'web', 'desarrollo',
+  'pipeline', 'infraestructura', 'api', 'frontend',
+  'backend', 'fullstack', 'integracion', 'agile'
 ];
 
 let puntaje = 0;
