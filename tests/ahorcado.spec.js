@@ -37,9 +37,10 @@ test.describe('Harness de Pruebas - El Ahorcado', () => {
     await expect(overlay).toBeVisible();
     await expect(overlay).toContainText('🏆');
 
-    // Verificar puntaje (letras únicas * 10 + bonus)
+    // Verificar puntaje: letras únicas * 10 + bonus de partida + streak (cada 3 aciertos seguidos da +20)
     const letrasUnicas = [...new Set(palabraSecreta.split(''))];
-    const puntajeEsperado = (letrasUnicas.length * 10) + 50;
+    const streakBonus = Math.floor(letrasUnicas.length / 3) * 20;
+    const puntajeEsperado = (letrasUnicas.length * 10) + 50 + streakBonus;
     const badgePuntaje = page.locator('.puntaje-valor');
     await expect(badgePuntaje).toHaveText(puntajeEsperado.toString());
 
