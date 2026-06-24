@@ -46,33 +46,92 @@ El proyecto está diseñado para desarrollo asistido por IA en múltiples nivele
 
 - **Comando `/super-commit`** — agrupa cambios no commiteados en commits semánticos y pushea automáticamente.
 
-### Harness de IA autónomo
+### Provider de LLM (abstracción polimórfica)
 
-En `.agents/ia-harness/agent.js` hay un **bucle de desarrollo autónomo** que opera sin intervención humana:
+El harness abstrae el modelo de IA detrás de una **interfaz de provider** (`providers/index.js`). Cada provider implementa `chat({ messages, response_format })` — el harness no sabe ni le importa qué API hay detrás.
 
-1. **Lee contexto** — recolecta spec, HTML, JS, CSS, server, tests y system prompt
-2. **Llama a la IA** — envía todo el contexto a un modelo LLM (vía API compatible con OpenAI, default `big-pickle`)
-3. **Aplica cambios** — la IA responde con `{ archivos: [{ archivo, codigo }] }`; el harness escribe cada archivo a disco
-4. **Ejecuta tests** — corre secuencialmente `npm test` (Playwright en Chromium) y `npm run test:words-server`
-5. **Diagnóstico** — si un test falla, **spawnea el sub-agente debugger** (ver abajo), cuyo diagnóstico se inyecta como feedback en el siguiente ciclo
-6. **Itera** — repite hasta 5 intentos. Si todos pasan → éxito. Si se agotan → error con `lastError`
-7. La IA puede crear o modificar tests cuando las especificaciones cambian
+| Provider | Variable de entorno | Uso |
+|----------|-------------------|-----|
+| `openai` | `LLM_PROVIDER=openai` (default) | OpenAI API y compatibles (Ollama, LM Studio) |
+| `anthropic` | `LLM_PROVIDER=anthropic` | Anthropic Claude |
+
+Configuración vía entorno:
+- `LLM_PROVIDER` — selecciona el provider (`openai` | `anthropic`)
+- `OPENCODE_API_URL` — URL base de la API (para OpenAI/compatibles)
+- `OPENCODE_API_KEY` — API key; para Anthropic: `anthropic:<key>` o `ANTHROPIC_API_KEY`
+- `OPENCODE_MODEL` / `ANTHROPIC_MODEL` — nombre del modelo
+
+### Harness de IA autónomo (tool-calling loop)
+
+En `.agents/ia-harness/agent.js` hay un **bucle de agente con herramientas** que opera sin intervención humana:
+
+1. **Scaffolding** — verifica Node.js, dependencias, archivos clave antes de empezar
+2. **Contexto mínimo** — envía solo estructura del proyecto + AGENTS.md + spec.md (no todos los archivos)
+3. **Tool-calling loop** — la IA pide ejecutar herramientas (read_file, write_file, edit_file, search_code, run_command, run_tests, read_url) y el harness ejecuta y devuelve resultados
+4. **Memoria** — el historial se trunca a los últimos 10 intercambios para no saturar la ventana de contexto
+5. **Provider abstracto** — usa el provider configurado (OpenAI o Anthropic) indistintamente
+6. **Validación de documentación** — si se modifican archivos fuente sin actualizar la doc correspondiente, el harness rechaza el `complete`
+7. **Verificación** — cuando la IA declara `complete`, el harness corre los tests automáticamente
+
+La IA responde con JSON:
+```json
+// Para ejecutar herramientas:
+{ "reasoning": "...", "tool_calls": [{ "name": "read_file", "arguments": { "path": "docs/script.js" } }] }
+
+// Para indicar finalización:
+{ "reasoning": "...", "complete": true, "message": "Implementé X" }
+```
 
 ### Sub-agente debugger
 
-El **debugger autónomo** (`.agents/debugger/debugger.js`) es un script independiente que el harness invoca como sub-proceso cuando los tests fallan. No depende del harness: puede ejecutarse solo con `--error` o por stdin.
+El **debugger autónomo** (`.agents/debugger/debugger.js`) es un script independiente para diagnosticar fallos en tests. Se usa desde el harness o standalone. Recibe el error del test, lee los archivos del proyecto y envía todo a la API con el prompt de `prompt.md` para obtener un diagnóstico JSON estructurado.
 
-**Flujo de diagnóstico:**
-1. Recibe el error del test (stdout + stderr + mensaje)
-2. Lee los mismos archivos del proyecto que el harness
-3. Envía todo a la API con el prompt de `prompt.md`, pidiendo un JSON estructurado
-4. Devuelve `{ diagnostico: { tipo_error, archivo, linea, causa, sugerencia, confianza } }`
+**Uso:**
+```
+node .agents/debugger/debugger.js --error "output del test"
+```
 
-**Fallbacks:** si la API no responde o el JSON es inválido, devuelve `confianza: "baja"` con un diagnóstico genérico. El harness incorpora el diagnóstico en la sección `=== DIAGNÓSTICO DEL DEBUGGER ===` del siguiente prompt.
+**Salida:** `{ diagnostico: { tipo_error, archivo, linea, causa, sugerencia, confianza } }`
+
+**Fallbacks:** si la API no responde o el JSON es inválido, devuelve `confianza: "baja"` con diagnóstico genérico.
+
+### Sistema de seguridad
+
+`security.js` clasifica cada herramienta por nivel de riesgo y aplica la política configurada vía `HARNESS_SECURITY_MODE`:
+
+| Modo | Comportamiento |
+|------|---------------|
+| `auto` (default) | Permite todo, ideal para CI |
+| `confirm` | Pregunta al usuario antes de operaciones destructivas (`write_file`, `edit_file`, `run_command`) |
+| `restricted` | Bloquea operaciones destructivas, solo permite lectura |
+
+Todas las operaciones se registran en `harness-security.log` con timestamp, tool, argumentos y si fueron permitidas o bloqueadas.
+
+### Agente revisor
+
+`reviewer.js` se ejecuta automáticamente cuando la IA declara `complete: true`. Verifica:
+
+1. **Tests** — ejecuta ambas suites (Playwright + words-server)
+2. **Secretos** — busca patrones de API keys, tokens, claves privadas en archivos modificados
+3. **Archivos clave** — confirma que los archivos esenciales del proyecto existen
+4. **Sintaxis** — verifica que `wordsServer.mjs` tenga sintaxis válida
+
+Si alguna verificación falla, el harness rechaza el `complete` y pide correcciones.
+
+### Métricas y auto-mejora
+
+`metrics.js` trackea cada ejecución del harness y escribe un registro estructurado en `harness-metrics.ndjson`:
+
+- Tool calls (cuáles, cuántas, errores)
+- Intentos hasta éxito/fracaso
+- Duración total
+- Errores comunes
+
+Al finalizar exitosamente, `autoImprove()` analiza los últimos 20 runs. Si detecta patrones de error recurrentes (ej: una tool falla 3+ veces), agrega reglas aprendidas al `system-prompt.md` para evitar que se repitan.
 
 ### Skills
 
-Las skills se cargan desde `.agents/skills/` y se configuran en `opencode.jsonc`. Son instrucciones especializadas que opencode inyecta cuando detecta una tarea relevante (ej: "mejorá el diseño" → `frontend-design`). No se aplican automáticamente (`autoApply: false`) para no saturar el contexto.
+Las skills se cargan desde `.agents/skills/` y se configuran en `opencode.jsonc`. Son instrucciones especializadas que opencode inyecta cuando detecta una tarea relevante (ej: "mejorá el diseño" → `frontend-design`). `frontend-design` y `nodejs-backend-patterns` tienen `autoApply: true` para aplicarse automáticamente cuando la tarea corresponde.
 
 ### MCP
 
@@ -108,7 +167,9 @@ Los tests usan **Playwright** y están en `tests/`:
 | `npm test` | Tests de Playwright para el juego |
 | `npm run test:chromium` | Tests solo en Chromium |
 | `npm run test:words-server` | Tests del servidor MCP |
-| `node .agents/ia-harness/agent.js` | Bucle de desarrollo autónomo con IA |
+| `node .agents/ia-harness/agent.js "<instrucción>"` | Bucle de desarrollo autónomo con IA y herramientas |
+| `node .agents/scaffold/check-env.js` | Verifica que el entorno esté listo (Node, deps, archivos clave) |
+| `node .agents/debugger/debugger.js --error "<output>"` | Diagnóstico de fallos en tests |
 | `/super-commit` (en opencode) | Commits semánticos + push |
 
 ## Estructura del repositorio
@@ -127,14 +188,33 @@ opencode.jsonc         — configuración de opencode (en la raíz)
     super-commit.md   — comando personalizado
 .agents/
   ia-harness/
-    agent.js          — bucle de desarrollo autónomo
-    system-prompt.md  — prompt del agente IA
+    agent.js              — bucle IA con tool-calling loop y scaffolding
+    system-prompt.md      — prompt de sistema para la IA del harness
+    security.js           — sistema de seguridad (modos auto/confirm/restricted)
+    reviewer.js           — agente revisor post-cambio (tests, secrets, consistencia)
+    metrics.js            — métricas y auto-mejora (tracking + actualización de rules)
+    tools/
+      index.js            — registro central de herramientas
+      read-file.js        — tool: leer archivos del proyecto
+      write-file.js       — tool: escribir archivos
+      edit-file.js        — tool: edición precisa (search-and-replace)
+      search-code.js      — tool: búsqueda regex en el código
+      run-command.js      — tool: ejecutar comandos (npm, node, npx)
+      run-tests.js        — tool: ejecutar suites de test
+      read-url.js         — tool: consultar URLs externas
+    providers/
+      index.js            — fábrica de providers
+      base.js             — interfaz base LLMProvider
+      openai.js           — provider OpenAI/compatible
+      anthropic.js        — provider Anthropic Claude
+  scaffold/
+    check-env.js          — verificación del entorno (Node, deps, archivos clave)
   debugger/
-    debugger.js       — sub-agente de diagnóstico de tests
-    prompt.md         — prompt del debugger
+    debugger.js           — diagnóstico autónomo de fallos en tests
+    prompt.md             — prompt de sistema del debugger
   mcp/
-    mcp.json          — configuración MCP legacy
-  skills/             — habilidades para opencode
+    mcp.json              — configuración MCP legacy
+  skills/                 — habilidades para opencode
     frontend-design/
     nodejs-backend-patterns/
     nodejs-best-practices/
