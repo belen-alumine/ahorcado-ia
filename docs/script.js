@@ -33,6 +33,9 @@ let letrasAdivinadas = [];
 let letrasErradas = [];
 let errores = 0;
 const maxErrores = 7;
+let rachaAciertos = 0;
+let escudoActivo = false;
+let powerUps = { pista: 1, escudo: 1, cambiar: 1 };
 
 let animacionId = null;
 let particulas = [];
@@ -265,6 +268,72 @@ function verificarFin() {
   return false;
 }
 
+function actualizarPowerUps() {
+  document.getElementById('pistaBtn').disabled = powerUps.pista <= 0;
+  document.getElementById('escudoBtn').disabled = powerUps.escudo <= 0;
+  document.getElementById('cambiarBtn').disabled = powerUps.cambiar <= 0;
+}
+
+function actualizarRacha() {
+  const rachaEl = document.getElementById('racha');
+  if (rachaAciertos > 0) {
+    rachaEl.textContent = `🔥 ${rachaAciertos}`;
+    rachaEl.style.display = 'block';
+  } else {
+    rachaEl.style.display = 'none';
+  }
+}
+
+function usarPista() {
+  if (powerUps.pista <= 0) return;
+  powerUps.pista--;
+  const unguessed = [...new Set(palabraSecreta.split(''))].filter(l => !letrasAdivinadas.includes(l));
+  if (unguessed.length === 0) return;
+  const letra = unguessed[Math.floor(Math.random() * unguessed.length)];
+  letrasAdivinadas.push(letra);
+  const btn = document.querySelector(`button[data-letra="${letra}"]`);
+  if (btn) { btn.classList.add('acertada'); btn.disabled = true; }
+  actualizarPalabra();
+  actualizarPowerUps();
+  verificarFin();
+}
+
+function usarEscudo() {
+  if (powerUps.escudo <= 0) return;
+  powerUps.escudo--;
+  escudoActivo = true;
+  mensajeEl.textContent = '🛡️ Escudo activado — el próximo error no cuenta';
+  mensajeEl.className = 'mensaje ganaste';
+  setTimeout(() => { mensajeEl.className = 'mensaje'; mensajeEl.textContent = ''; }, 2000);
+  actualizarPowerUps();
+}
+
+async function usarCambiar() {
+  if (powerUps.cambiar <= 0) return;
+  powerUps.cambiar--;
+  try {
+    palabraSecreta = await obtenerPalabra();
+  } catch {
+    powerUps.cambiar++;
+    return;
+  }
+  window.palabraSecreta = palabraSecreta;
+  letrasAdivinadas = [];
+  letrasErradas = [];
+  errores = 0;
+  escudoActivo = false;
+  rachaAciertos = 0;
+  mensajeEl.textContent = '';
+  mensajeEl.className = 'mensaje';
+  letrasErradasEl.textContent = '';
+  dibujarAhorcado(0);
+  actualizarVidas();
+  crearBotones();
+  actualizarPalabra();
+  actualizarPowerUps();
+  actualizarRacha();
+}
+
 function elegirLetra(letra) {
   if (letrasAdivinadas.includes(letra) || letrasErradas.includes(letra)) return;
   const btn = document.querySelector(`button[data-letra="${letra}"]`);
@@ -272,10 +341,29 @@ function elegirLetra(letra) {
   if (palabraSecreta.includes(letra)) {
     letrasAdivinadas.push(letra);
     puntaje += 10;
+    rachaAciertos++;
+    if (rachaAciertos > 0 && rachaAciertos % 3 === 0) {
+      puntaje += 20;
+      mensajeEl.textContent = `🔥 ¡Racha de ${rachaAciertos}! +20 puntos`;
+      mensajeEl.className = 'mensaje ganaste';
+      setTimeout(() => { mensajeEl.className = 'mensaje'; mensajeEl.textContent = ''; }, 2000);
+    }
     actualizarPuntaje();
     btn.classList.add('acertada');
     btn.classList.add('pop');
   } else {
+    if (escudoActivo) {
+      escudoActivo = false;
+      mensajeEl.textContent = '🛡️ El escudo absorbió el error';
+      mensajeEl.className = 'mensaje ganaste';
+      setTimeout(() => { mensajeEl.className = 'mensaje'; mensajeEl.textContent = ''; }, 1500);
+      btn.classList.add('fallada');
+      btn.disabled = true;
+      letrasErradas.push(letra);
+      letrasErradasEl.textContent = `Letras erradas: ${letrasErradas.join(', ')}`;
+      actualizarPowerUps();
+      return;
+    }
     letrasErradas.push(letra);
     errores++;
     actualizarVidas();
@@ -285,9 +373,11 @@ function elegirLetra(letra) {
     dibujarAhorcado(errores);
     palabraEl.classList.add('shake');
     setTimeout(() => palabraEl.classList.remove('shake'), 500);
+    rachaAciertos = 0;
   }
 
   actualizarPalabra();
+  actualizarRacha();
   letrasErradasEl.textContent = letrasErradas.length ? `Letras erradas: ${letrasErradas.join(', ')}` : '';
   btn.disabled = true;
   verificarFin();
@@ -348,15 +438,23 @@ async function reiniciar() {
   mensajeEl.className = 'mensaje';
   letrasErradasEl.textContent = '';
   palabraEl.classList.remove('shake');
+  escudoActivo = false;
+  rachaAciertos = 0;
+  powerUps = { pista: 1, escudo: 1, cambiar: 1 };
   dibujarAhorcado(0);
   actualizarVidas();
   crearBotones();
   actualizarPalabra();
+  actualizarPowerUps();
+  actualizarRacha();
 }
 
 document.addEventListener('keydown', (e) => {
   if (overlay.classList.contains('visible')) return;
   let tecla = e.key.toLowerCase();
+  if (tecla === '1') { usarPista(); return; }
+  if (tecla === '2') { usarEscudo(); return; }
+  if (tecla === '3') { usarCambiar(); return; }
   if (tecla === 'ñ' || (tecla >= 'a' && tecla <= 'z')) {
     const btn = document.querySelector(`button[data-letra="${tecla}"]`);
     if (btn && !btn.disabled) {
@@ -367,4 +465,7 @@ document.addEventListener('keydown', (e) => {
 
 reiniciarBtn.addEventListener('click', () => reiniciar());
 volverJugarBtn.addEventListener('click', () => reiniciar());
+document.getElementById('pistaBtn').addEventListener('click', usarPista);
+document.getElementById('escudoBtn').addEventListener('click', usarEscudo);
+document.getElementById('cambiarBtn').addEventListener('click', usarCambiar);
 reiniciar();

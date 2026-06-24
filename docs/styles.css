@@ -213,6 +213,47 @@ canvas {
   opacity: 0.85;
 }
 
+.powerups {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.powerup {
+  width: 48px;
+  height: 48px;
+  font-size: 1.4em;
+  border: 2px solid #e8ddd5;
+  background: #fefcf9;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  line-height: 1;
+}
+
+.powerup:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.powerup:disabled {
+  opacity: 0.3;
+  cursor: default;
+  filter: grayscale(0.8);
+}
+
+.racha {
+  display: none;
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #ff6b35;
+  animation: pop 0.3s ease;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+
 .btn-reiniciar {
   padding: 14px 32px;
   font-size: 1em;
